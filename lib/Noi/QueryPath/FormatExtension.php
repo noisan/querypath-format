@@ -20,40 +20,52 @@ class FormatExtension implements Extension
 
     public function format($callback, $args = null, $additional = null)
     {
-        list($callback, $pos) = $this->prepareCallback($callback);
-        if (!is_callable($callback)) {
-            throw new Exception('Callback is not callable.');
-        }
-
         if (isset($additional)) {
             $args = func_get_args();
             array_shift($args);
         }
 
-        $padded = $this->prepareArgs($args, $pos);
-        foreach ($this->qp as $qp) {
-            $padded[$pos] = $qp->text();
-            $qp->text(call_user_func_array($callback, $padded));
-        }
-        return $this->qp;
+        $getter = function ($qp) {
+            return $qp->text();
+        };
+
+        $setter = function ($qp, $value) {
+            $qp->text($value);
+        };
+
+        return $this->forAll($callback, $args, $getter, $setter);
     }
 
     public function formatAttr($attrName, $callback, $args = null, $additional = null)
+    {
+        if (isset($additional)) {
+            $args = array_slice(func_get_args(), 2);
+        }
+
+        $getter = function ($qp) use ($attrName) {
+            return $qp->attr($attrName);
+        };
+
+        $setter = function ($qp, $value) use ($attrName) {
+            return $qp->attr($attrName, $value);
+        };
+
+        return $this->forAll($callback, $args, $getter, $setter);
+    }
+
+    protected function forAll($callback, $args, $getter, $setter)
     {
         list($callback, $pos) = $this->prepareCallback($callback);
         if (!is_callable($callback)) {
             throw new Exception('Callback is not callable.');
         }
 
-        if (isset($additional)) {
-            $args = array_slice(func_get_args(), 2);
-        }
-
         $padded = $this->prepareArgs($args, $pos);
         foreach ($this->qp as $qp) {
-            $padded[$pos] = $qp->attr($attrName);
-            $qp->attr($attrName, call_user_func_array($callback, $padded));
+            $padded[$pos] = $getter($qp);
+            $setter($qp, call_user_func_array($callback, $padded));
         }
+
         return $this->qp;
     }
 
