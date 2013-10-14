@@ -38,6 +38,25 @@ class FormatExtension implements Extension
         return $this->qp;
     }
 
+    public function formatAttr($attrName, $callback, $args = null, $additional = null)
+    {
+        list($callback, $pos) = $this->prepareCallback($callback);
+        if (!is_callable($callback)) {
+            throw new Exception('Callback is not callable.');
+        }
+
+        if (isset($additional)) {
+            $args = array_slice(func_get_args(), 2);
+        }
+
+        $padded = $this->prepareArgs($args, $pos);
+        foreach ($this->qp as $qp) {
+            $padded[$pos] = $qp->attr($attrName);
+            $qp->attr($attrName, call_user_func_array($callback, $padded));
+        }
+        return $this->qp;
+    }
+
     protected function prepareCallback($callback)
     {
         if (is_string($callback)) {
