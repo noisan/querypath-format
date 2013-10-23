@@ -6,6 +6,38 @@ use QueryPath\Query;
 use QueryPath\Exception;
 
 /**
+ * A QueryPath extension that adds extra methods for formatting node values.
+ *
+ * This extension provides two methods:
+ *
+ * - format()
+ * - formatAttr()
+ *
+ * Usage:
+ * <code>
+ * <?php
+ * QueryPath::enable('Noi\QueryPath\FormatExtension');
+ * $qp = qp('<?xml version="1.0"?><root><item score="12000">TEST A</item><item score="9876.54">TEST B</item></root>');
+ *
+ * $qp->find('item')->format(function ($text) {
+ *     return ucwords(strtolower($text));
+ * });
+ * $qp->find('item')->formatAttr('score', 'number_format', 2);
+ *
+ * $qp->writeXML();
+ * </code>
+ *
+ * OUTPUT:
+ * <code>
+ * <?xml version="1.0"?>
+ * <root>
+ *   <item score="12,000.00">Test A</item>
+ *   <item score="9,876.54">Test B</item>
+ * </root>
+ * </code>
+ *
+ * @see FormatExtension::format()
+ * @see FormatExtension::formatAttr()
  *
  * @author Akihiro Yamanoi <akihiro.yamanoi@gmail.com>
  */
@@ -18,6 +50,37 @@ class FormatExtension implements Extension
         $this->qp = $qp;
     }
 
+    /**
+     * Formats the text content of each selected element in the current DOMQuery object.
+     *
+     * Usage:
+     * <code>
+     * <?php
+     * QueryPath::enable('Noi\QueryPath\FormatExtension');
+     * $qp = qp('<?xml version="1.0"?><root><div>Apple</div><div>Orange</div></root>');
+     *
+     * $qp->find('div')->format('strtoupper');
+     * $qp->find('div')->format(function ($text) {
+     *     return '*' . $text . '*';
+     * });
+     *
+     * $qp->writeXML();
+     * </code>
+     *
+     * OUTPUT:
+     * <code>
+     * <?xml version="1.0"?>
+     * <root>
+     *   <div>*APPLE*</div>
+     *   <div>*ORANGE*</div>
+     * </root>
+     * </code>
+     *
+     * @param callable $callback The callable to be called on every element.
+     * @param mixed $args [optional] Zero or more parameters to be passed to the callback.
+     * @param mixed $_ [optional]
+     * @return \QueryPath\DOMQuery The DOMQuery object with the same element(s) selected.
+     */
     public function format($callback, $args = null, $additional = null)
     {
         if (isset($additional)) {
@@ -36,6 +99,40 @@ class FormatExtension implements Extension
         return $this->forAll($callback, $args, $getter, $setter);
     }
 
+    /**
+     * Formats the given attribute of each selected element in the current DOMQuery object.
+     *
+     * Usage:
+     * <code>
+     * QueryPath::enable('Noi\QueryPath\FormatExtension');
+     * $qp = qp('<?xml version="1.0"?><root><item label="_apple_" total="12,345,678" /><item label="_orange_" total="987,654,321" /></root>');
+     *
+     * $qp->find('item')
+     *     ->formatAttr('label', 'trim', '_')
+     *     ->formatAttr('total', 'str_replace[2]', ',', '');
+     *
+     * $qp->find('item')->formatAttr('label', function ($value) {
+     *     return ucfirst(strtolower($value));
+     * });
+     *
+     * $qp->writeXML();
+     * </code>
+     *
+     * OUTPUT:
+     * <code>
+     * <?xml version="1.0"?>
+     * <root>
+     *   <item label="Apple" total="12345678"/>
+     *   <item label="Orange" total="987654321"/>
+     * </root>
+     * </code>
+     *
+     * @param string $attrName The attribute name.
+     * @param callable $callback The callable to be called on every element.
+     * @param mixed $args [optional] Zero or more parameters to be passed to the callback.
+     * @param mixed $_ [optional]
+     * @return \QueryPath\DOMQuery The DOMQuery object with the same element(s) selected.
+     */
     public function formatAttr($attrName, $callback, $args = null, $additional = null)
     {
         if (isset($additional)) {
